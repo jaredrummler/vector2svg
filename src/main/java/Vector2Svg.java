@@ -38,7 +38,7 @@ import javax.xml.transform.stream.StreamResult;
 
 public class Vector2Svg {
 
-  public static void main(String[] args) throws Exception {
+  public static void main(String[] args) {
     if (args == null || args.length == 0) {
       printUsage();
       return;
@@ -125,13 +125,12 @@ public class Vector2Svg {
         String fillColor = null;
         for (int j = 0; j < item.getAttributes().getLength(); j++) {
           Node node = item.getAttributes().item(j);
-          switch (node.getNodeName()) {
-            case "android:pathData":
-              pathData = node.getNodeValue();
-              break;
-            case "android:fillColor":
-              fillColor = node.getNodeValue();
-              break;
+          String name = node.getNodeName();
+          String value = node.getNodeValue();
+          if (name.equals("android:pathData")) {
+            pathData = value;
+          } else if (name.equals("android:fillColor") && value.startsWith("#")) {
+            fillColor = value;
           }
         }
         if (pathData != null) {
