@@ -38,11 +38,10 @@ import javax.xml.transform.stream.StreamResult;
 public class Vector2Svg {
 
   public static void main(String[] args) {
-    if (args == null || args.length == 0) {
+    if (args == null || args.length == 0 || args[0].equals("--help")) {
       printUsage();
       return;
     }
-
     for (String path : args) {
       Vector2Svg converter = new Vector2Svg(new File(path));
       if (!converter.createSvg()) {
@@ -51,8 +50,15 @@ public class Vector2Svg {
     }
   }
 
-  private final File source;
+  private static void printUsage() {
+    File jarFile =
+        new File(Vector2Svg.class.getProtectionDomain().getCodeSource().getLocation().getPath());
+    System.out.println("Convert Android VectorDrawable XML resource file to SVG");
+    System.out.println();
+    System.out.println(String.format("Usage: java -jar %s [FILE]...", jarFile.getName()));
+  }
 
+  private final File source;
   private final File destination;
 
   public Vector2Svg(File source) {
@@ -69,7 +75,7 @@ public class Vector2Svg {
       AndroidVectorDrawable drawable = getDrawable();
       Document doc = DocumentBuilderFactory.newInstance().newDocumentBuilder().newDocument();
       Element svg = doc.createElement("svg");
-      svg.setAttribute("viewBox", String.format("0 0 %d %d", drawable.width, drawable.height));
+      svg.setAttribute("viewBox", String.format("0 0 %.1f %.1f", drawable.width, drawable.height));
       for (VectorPath path : drawable.paths) {
         Element child = doc.createElement("path");
         if (path.fillColor != null) {
@@ -101,13 +107,13 @@ public class Vector2Svg {
     NamedNodeMap attributes = vector.getAttributes();
     NodeList children = vector.getChildNodes();
 
-    int width = 0;
-    int height = 0;
+    double width = 0;
+    double height = 0;
     for (int i = 0; i < attributes.getLength(); i++) {
       if (attributes.item(i).getNodeName().equals("android:viewportHeight")) {
-        height = (int) Double.parseDouble(attributes.item(i).getNodeValue());
+        height = Double.parseDouble(attributes.item(i).getNodeValue());
       } else if (attributes.item(i).getNodeName().equals("android:viewportWidth")) {
-        width = (int) Double.parseDouble(attributes.item(i).getNodeValue());
+        width = Double.parseDouble(attributes.item(i).getNodeValue());
       }
     }
 
@@ -141,7 +147,7 @@ public class Vector2Svg {
     private String pathData;
     private String fillColor;
 
-    public VectorPath(String pathData, String fillColor) {
+    private VectorPath(String pathData, String fillColor) {
       this.pathData = pathData;
       this.fillColor = fillColor;
     }
@@ -150,21 +156,14 @@ public class Vector2Svg {
   private class AndroidVectorDrawable {
 
     private final List<VectorPath> paths;
-    private final int height;
-    private final int width;
+    private final double height;
+    private final double width;
 
-    public AndroidVectorDrawable(List<VectorPath> paths, int width, int height) {
+    private AndroidVectorDrawable(List<VectorPath> paths, double width, double height) {
       this.paths = paths;
       this.height = height;
       this.width = width;
     }
   }
 
-  private static void printUsage() {
-    File jarFile =
-        new File(Vector2Svg.class.getProtectionDomain().getCodeSource().getLocation().getPath());
-    System.out.println("Convert Android VectorDrawable XML resource file to SVG");
-    System.out.println();
-    System.out.println(String.format("Usage: java -jar %s [FILE]...", jarFile.getName()));
-  }
 }
