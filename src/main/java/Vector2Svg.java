@@ -31,7 +31,6 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Transformer;
-import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
@@ -45,78 +44,73 @@ public class Vector2Svg {
     }
 
     for (String path : args) {
-      File xml = new File(path);
-      if (!xml.exists() || !xml.canRead()) {
-        System.out.println(xml.getPath() + " does not exist.");
-        continue;
-      }
-      File svg = new File(xml.getParent(), xml.getName().replaceFirst("[.][^.]+$", ".svg"));
-      try {
-        AndroidVectorDrawable drawable = getDrawable(xml);
-        vectorToSvgFile(drawable, svg);
-      } catch (Exception e) {
-        System.out.println("Error creating SVG from " + xml.getName());
+      Vector2Svg converter = new Vector2Svg(new File(path));
+      if (!converter.createSvg()) {
+        System.out.println("Error creating SVG from " + path);
       }
     }
   }
 
-  private static void vectorToSvgFile(AndroidVectorDrawable drawable, File destination)
-      throws ParserConfigurationException, TransformerException {
-    Document doc = DocumentBuilderFactory.newInstance().newDocumentBuilder().newDocument();
-    Element svg = doc.createElement("svg");
-    svg.setAttribute("viewBox", "0 0 " + drawable.getWidth() + " " + drawable.getHeight());
-    for (VectorPath path : drawable.paths) {
-      Element child = doc.createElement("path");
-      if (path.fillColor != null) {
-        child.setAttribute("fill", path.fillColor);
-      }
-      child.setAttribute("d", path.pathData);
-      svg.appendChild(child);
-    }
-    doc.appendChild(svg);
-    TransformerFactory transformerFactory = TransformerFactory.newInstance();
-    Transformer transformer = transformerFactory.newTransformer();
-    DOMSource source = new DOMSource(doc);
-    StreamResult result = new StreamResult(destination);
-    transformer.setOutputProperty(OutputKeys.INDENT, "yes");
-    transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "2");
-    transformer.transform(source, result);
+  private final File source;
+
+  private final File destination;
+
+  public Vector2Svg(File source) {
+    this(source, new File(source.getParent(), source.getName().replaceFirst("[.][^.]+$", ".svg")));
   }
 
-  private static AndroidVectorDrawable getDrawable(File file)
+  public Vector2Svg(File source, File destination) {
+    this.source = source;
+    this.destination = destination;
+  }
+
+  public boolean createSvg() {
+    try {
+      AndroidVectorDrawable drawable = getDrawable();
+      Document doc = DocumentBuilderFactory.newInstance().newDocumentBuilder().newDocument();
+      Element svg = doc.createElement("svg");
+      svg.setAttribute("viewBox", String.format("0 0 %d %d", drawable.width, drawable.height));
+      for (VectorPath path : drawable.paths) {
+        Element child = doc.createElement("path");
+        if (path.fillColor != null) {
+          child.setAttribute("fill", path.fillColor);
+        }
+        child.setAttribute("d", path.pathData);
+        svg.appendChild(child);
+      }
+      doc.appendChild(svg);
+      TransformerFactory transformerFactory = TransformerFactory.newInstance();
+      Transformer transformer = transformerFactory.newTransformer();
+      DOMSource source = new DOMSource(doc);
+      StreamResult result = new StreamResult(destination);
+      transformer.setOutputProperty(OutputKeys.INDENT, "yes");
+      transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "2");
+      transformer.transform(source, result);
+      return true;
+    } catch (Exception e) {
+      return false;
+    }
+  }
+
+  private AndroidVectorDrawable getDrawable()
       throws ParserConfigurationException, IOException, SAXException {
     Document xml =
-        DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(file);
+        DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(source);
     xml.getDocumentElement().normalize();
     Node vector = xml.getElementsByTagName("vector").item(0);
     NamedNodeMap attributes = vector.getAttributes();
     NodeList children = vector.getChildNodes();
-    int width, height;
-    width = getWidth(attributes);
-    height = getHeight(attributes);
-    List<VectorPath> paths = getPaths(children);
-    return new AndroidVectorDrawable(paths, width, height);
-  }
 
-  private static int getWidth(NamedNodeMap attributes) {
-    for (int i = 0; i < attributes.getLength(); i++) {
-      if (attributes.item(i).getNodeName().equals("android:viewportWidth")) {
-        return (int) Double.parseDouble(attributes.item(i).getNodeValue());
-      }
-    }
-    return 0;
-  }
-
-  private static int getHeight(NamedNodeMap attributes) {
+    int width = 0;
+    int height = 0;
     for (int i = 0; i < attributes.getLength(); i++) {
       if (attributes.item(i).getNodeName().equals("android:viewportHeight")) {
-        return (int) Double.parseDouble(attributes.item(i).getNodeValue());
+        height = (int) Double.parseDouble(attributes.item(i).getNodeValue());
+      } else if (attributes.item(i).getNodeName().equals("android:viewportWidth")) {
+        width = (int) Double.parseDouble(attributes.item(i).getNodeValue());
       }
     }
-    return 0;
-  }
 
-  private static List<VectorPath> getPaths(NodeList children) {
     List<VectorPath> paths = new ArrayList<>();
     for (int i = 0; i < children.getLength(); i++) {
       Node item = children.item(i);
@@ -138,13 +132,14 @@ public class Vector2Svg {
         }
       }
     }
-    return paths;
+
+    return new AndroidVectorDrawable(paths, width, height);
   }
 
-  static class VectorPath {
+  private class VectorPath {
 
-    String pathData;
-    String fillColor;
+    private String pathData;
+    private String fillColor;
 
     public VectorPath(String pathData, String fillColor) {
       this.pathData = pathData;
@@ -152,24 +147,16 @@ public class Vector2Svg {
     }
   }
 
-  static class AndroidVectorDrawable {
+  private class AndroidVectorDrawable {
 
-    List<VectorPath> paths;
-    int height;
-    int width;
+    private final List<VectorPath> paths;
+    private final int height;
+    private final int width;
 
     public AndroidVectorDrawable(List<VectorPath> paths, int width, int height) {
       this.paths = paths;
       this.height = height;
       this.width = width;
-    }
-
-    String getHeight() {
-      return Integer.toString(height);
-    }
-
-    String getWidth() {
-      return Integer.toString(height);
     }
   }
 
