@@ -3,7 +3,7 @@ Convert Android VectorDrawable XML resource file to SVG
 
 ___
 
-Download the [JAR](https://github.com/jaredrummler/vector2svg/blob/master/release/vector2svg-1.0.jar?raw=true)
+Download the [JAR](https://github.com/jaredrummler/vector2svg/blob/master/release/vector2svg-1.1.jar?raw=true)
 
 Usage: java -jar [JAR] [FILES]
 
