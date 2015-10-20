@@ -76,6 +76,18 @@ public class Vector2Svg {
       Document doc = DocumentBuilderFactory.newInstance().newDocumentBuilder().newDocument();
       Element svg = doc.createElement("svg");
       svg.setAttribute("viewBox", String.format("0 0 %.1f %.1f", drawable.width, drawable.height));
+      for (Group group : drawable.groups) {
+        Element g = doc.createElement("g");
+        for (VectorPath path : group.paths) {
+          Element child = doc.createElement("path");
+          if (path.fillColor != null) {
+            child.setAttribute("fill", path.fillColor);
+          }
+          child.setAttribute("d", path.pathData);
+          g.appendChild(child);
+        }
+        svg.appendChild(g);
+      }
       for (VectorPath path : drawable.paths) {
         Element child = doc.createElement("path");
         if (path.fillColor != null) {
@@ -118,28 +130,51 @@ public class Vector2Svg {
     }
 
     List<VectorPath> paths = new ArrayList<>();
+    List<Group> groups = new ArrayList<>();
+
     for (int i = 0; i < children.getLength(); i++) {
       Node item = children.item(i);
-      if (item.getNodeName().equals("path")) {
-        String pathData = null;
-        String fillColor = null;
-        for (int j = 0; j < item.getAttributes().getLength(); j++) {
-          Node node = item.getAttributes().item(j);
-          String name = node.getNodeName();
-          String value = node.getNodeValue();
-          if (name.equals("android:pathData")) {
-            pathData = value;
-          } else if (name.equals("android:fillColor") && value.startsWith("#")) {
-            fillColor = value;
+      if (item.getNodeName().equals("group")) {
+        List<VectorPath> groupPaths = new ArrayList<>();
+        for (int j = 0; j < item.getChildNodes().getLength(); j++) {
+          VectorPath path = getVectorPathFromNode(item.getChildNodes().item(j));
+          if (path != null) {
+            groupPaths.add(path);
           }
         }
-        if (pathData != null) {
-          paths.add(new VectorPath(pathData, fillColor));
+        if (!groupPaths.isEmpty()) {
+          groups.add(new Group(groupPaths));
+        }
+      } else {
+        VectorPath path = getVectorPathFromNode(item);
+        if (path != null) {
+          paths.add(path);
         }
       }
     }
 
-    return new AndroidVectorDrawable(paths, width, height);
+    return new AndroidVectorDrawable(paths, groups, width, height);
+  }
+
+  private VectorPath getVectorPathFromNode(Node item) {
+    if (item.getNodeName().equals("path")) {
+      String pathData = null;
+      String fillColor = null;
+      for (int j = 0; j < item.getAttributes().getLength(); j++) {
+        Node node = item.getAttributes().item(j);
+        String name = node.getNodeName();
+        String value = node.getNodeValue();
+        if (name.equals("android:pathData")) {
+          pathData = value;
+        } else if (name.equals("android:fillColor") && value.startsWith("#")) {
+          fillColor = value;
+        }
+      }
+      if (pathData != null) {
+        return new VectorPath(pathData, fillColor);
+      }
+    }
+    return null;
   }
 
   private class VectorPath {
@@ -153,14 +188,26 @@ public class Vector2Svg {
     }
   }
 
+  private class Group {
+
+    private final List<VectorPath> paths;
+
+    public Group(List<VectorPath> paths) {
+      this.paths = paths;
+    }
+  }
+
   private class AndroidVectorDrawable {
 
     private final List<VectorPath> paths;
+    private final List<Group> groups;
     private final double height;
     private final double width;
 
-    private AndroidVectorDrawable(List<VectorPath> paths, double width, double height) {
+    private AndroidVectorDrawable(List<VectorPath> paths, List<Group> groups,
+                                  double width, double height) {
       this.paths = paths;
+      this.groups = groups;
       this.height = height;
       this.width = width;
     }
