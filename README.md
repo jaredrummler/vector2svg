@@ -3,7 +3,7 @@ Convert [Android VectorDrawable](https://developer.android.com/reference/android
 
 ___
 
-Download the [JAR](https://github.com/jaredrummler/vector2svg/blob/master/release/vector2svg-1.1.jar?raw=true)
+Download the [JAR](https://github.com/jaredrummler/vector2svg/blob/master/release/vector2svg-1.1.1.jar?raw=true)
 
 Usage: java -jar [JAR] [FILES]
 

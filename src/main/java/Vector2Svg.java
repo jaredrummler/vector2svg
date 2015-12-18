@@ -76,6 +76,8 @@ public class Vector2Svg {
       Document doc = DocumentBuilderFactory.newInstance().newDocumentBuilder().newDocument();
       Element svg = doc.createElement("svg");
       svg.setAttribute("viewBox", String.format("0 0 %.1f %.1f", drawable.width, drawable.height));
+      svg.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+      svg.setAttribute("xmlns:xlink", "http://www.w3.org/1999/xlink");
       for (Group group : drawable.groups) {
         Element g = doc.createElement("g");
         for (VectorPath path : group.paths) {
