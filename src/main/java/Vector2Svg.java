@@ -85,6 +85,12 @@ public class Vector2Svg {
           if (path.fillColor != null) {
             child.setAttribute("fill", path.fillColor);
           }
+          if (path.strokeColor != null) {
+            child.setAttribute("stroke", path.strokeColor);
+          }
+          if (path.strokeWidth != null) {
+            child.setAttribute("stroke-width", path.strokeWidth);
+          }
           child.setAttribute("d", path.pathData);
           g.appendChild(child);
         }
@@ -94,6 +100,12 @@ public class Vector2Svg {
         Element child = doc.createElement("path");
         if (path.fillColor != null) {
           child.setAttribute("fill", path.fillColor);
+        }
+        if (path.strokeColor != null) {
+          child.setAttribute("stroke", path.strokeColor);
+        }
+        if (path.strokeWidth != null) {
+          child.setAttribute("stroke-width", path.strokeWidth);
         }
         child.setAttribute("d", path.pathData);
         svg.appendChild(child);
@@ -162,6 +174,8 @@ public class Vector2Svg {
     if (item.getNodeName().equals("path")) {
       String pathData = null;
       String fillColor = null;
+      String strokeColor = null;
+      String strokeWidth = null;
       for (int j = 0; j < item.getAttributes().getLength(); j++) {
         Node node = item.getAttributes().item(j);
         String name = node.getNodeName();
@@ -170,10 +184,14 @@ public class Vector2Svg {
           pathData = value;
         } else if (name.equals("android:fillColor") && value.startsWith("#")) {
           fillColor = value;
-        }
+        } else if (name.equals("android:strokeColor") && value.startsWith("#")) {
+          strokeColor = value;
+        } else if (name.equals("android:strokeWidth")) {
+          strokeWidth = value;
+      }
       }
       if (pathData != null) {
-        return new VectorPath(pathData, fillColor);
+        return new VectorPath(pathData, fillColor, strokeColor, strokeWidth);
       }
     }
     return null;
@@ -183,10 +201,14 @@ public class Vector2Svg {
 
     private String pathData;
     private String fillColor;
+    private String strokeColor;
+    private String strokeWidth;
 
-    private VectorPath(String pathData, String fillColor) {
+    private VectorPath(String pathData, String fillColor, String strokeColor, String strokeWidth) {
       this.pathData = pathData;
       this.fillColor = fillColor;
+      this.strokeColor = strokeColor;
+      this.strokeWidth = strokeWidth;
     }
   }
 
